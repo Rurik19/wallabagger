@@ -12,19 +12,32 @@ body {
     width: 450px;
     padding: 3px;
 }
-.card {
-    padding-bottom: 30px;
-}
 #card-title{
     cursor: pointer;
     color: #039be5;
     font-family: 'Roboto', sans-serif;
     font-size: 24px;
     font-weight: 300;
+    text-decoration: none;
 }
-#card-meta{
-    cursor: pointer;
+
+#entry-url {
+    text-decoration: none;
 }
+
+.action-button {
+    margin-left: 3px;
+    padding: 3px;
+    background-color: transparent;
+    border: none;
+}
+
+.action-button:hover,
+.action-button:active,
+.action-button:focus {
+    color: #039be5;
+}
+
 span.icon {
     cursor: pointer;
     margin-left: 5px;
@@ -35,10 +48,15 @@ span.icon {
 }
 
 #card-image {
-    height: 250px;
+    max-width: 444px;
+    max-height: 250px;
     overflow: hidden;
 }
 
 .pb-30 {
     padding-bottom: 30px;
+}
+
+.form-autocomplete-item {
+    display: inline;
 }

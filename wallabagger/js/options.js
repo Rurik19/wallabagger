@@ -1,39 +1,35 @@
 var OptionsController = function () {
-
     this.protocolCheck_ = document.getElementById('protocol-checkbox');
     this.protocolLabel_ = document.getElementById('input-group-wallabagurl');
     this.wallabagurlinput_ = document.getElementById('input-wallabagurl');
-    this.checkedLabel_ = document.getElementById("checked-label");
-    this.versionLabel_ = document.getElementById("apiversion-label");
+    this.checkedLabel_ = document.getElementById('checked-label');
+    this.versionLabel_ = document.getElementById('apiversion-label');
     this.checkurlbutton_ = document.getElementById('checkurl-button');
-    this.tokenSection_ = document.getElementById("token-section");
+    this.tokenSection_ = document.getElementById('token-section');
 
-    this.clientId_ = document.getElementById("clientid-input");
-    this.clientSecret_ = document.getElementById("clientsecret-input");
-    this.userLogin_ = document.getElementById("userlogin-input");
-    this.userPassword_ = document.getElementById("userpassword-input");
-    this.getAppTokenButton_ = document.getElementById("getapptoken-button");
-
-    //  this.appTokenInput_ = document.getElementById("apptoken-input");
-    this.tokenLabel_ = document.getElementById("apitoken-label");
-    //  this.checkTokenButton_ = document.getElementById("checktoken-button");
-
-    //  this.refrTokenInput_ = document.getElementById("refreshtoken-input");
-    //   this.refreshTokenButton_ = document.getElementById("refreshtoken-button");
-
-    //   this.tokenExpiresInput = document.getElementById("tokenexpired-input");
-    this.allowSpaceCheck = document.getElementById("allow-space-checkbox");
+    this.clientId_ = document.getElementById('clientid-input');
+    this.clientSecret_ = document.getElementById('clientsecret-input');
+    this.userLogin_ = document.getElementById('userlogin-input');
+    this.userPassword_ = document.getElementById('userpassword-input');
+    this.getAppTokenButton_ = document.getElementById('getapptoken-button');
+    this.tokenLabel_ = document.getElementById('apitoken-label');
+    this.allowSpaceCheck = document.getElementById('allow-space-checkbox');
+    this.allowExistCheck = document.getElementById('allow-exist-checkbox');
+    this.debugEl = document.getElementById('debug');
+    this.saveToFileButton = document.getElementById('saveToFile-button');
+    this.loadFromFileButton = document.getElementById('loadFromFile-button');
+    this.clearButton = document.getElementById('clear-button');
+    this.openFileDialog = document.getElementById('openFile-dialog');
+    this.httpsMessage = document.getElementById('https-message');
+    this.httpsButton = document.getElementById('https-button');
     this.addListeners_();
-
 };
-
 
 OptionsController.prototype = {
 
     protocolCheck_: null,
     protocolLabel_: null,
     wallabagurlinput_: null,
-    // savebutton_: null,
     checkurlbutton_: null,
     versionLabel_: null,
     _debug: false,
@@ -44,179 +40,170 @@ OptionsController.prototype = {
     userLogin_: null,
     userPassword_: null,
     getAppTokenButton_: null,
-    //    appTokenInput_: null,
     tokenLabel_: null,
-    //    checkTokenButton_: null,
-    //    refrTokenInput_: null,
-    //    refreshTokenButton_: null,
-    //    tokenExpiresInput: null,
+    saveToFileButton: null,
+    loadFromFileButton: null,
+    openFileDialog: null,
+    clearButton: null,
 
     allowSpaceCheck: null,
+    allowExistCheck: null,
+    debugEl: null,
+    httpsButton: null,
+    httpsMessage: null,
 
-    api: null,
+    data: null,
+    port: null,
 
     addListeners_: function () {
         this.allowSpaceCheck.addEventListener('click', this.allowSpaceCheckClick.bind(this));
+        this.allowExistCheck.addEventListener('click', this.allowExistCheckClick.bind(this));
+        this.debugEl.addEventListener('click', this.debugClick.bind(this));
         this.protocolCheck_.addEventListener('click', this.handleProtocolClick.bind(this));
-        // this.savebutton_.addEventListener('click', this.saveClick_.bind(this));
         this.checkurlbutton_.addEventListener('click', this.checkUrlClick.bind(this));
         this.getAppTokenButton_.addEventListener('click', this.getAppTokenClick.bind(this));
-        //      this.checkTokenButton_.addEventListener('click', this.checkTokenClick.bind(this));
-        //      this.refreshTokenButton_.addEventListener('click', this.refreshTokenClick.bind(this));
+        this.saveToFileButton.addEventListener('click', this.saveToFileClick.bind(this));
+        this.loadFromFileButton.addEventListener('click', this.loadFromFileClick.bind(this));
+        this.clearButton.addEventListener('click', this.clearClick.bind(this));
+        this.openFileDialog.addEventListener('change', this.loadFromFile.bind(this));
+        this.httpsButton.addEventListener('click', this.httpsButtonClick.bind(this));
     },
 
-    allowSpaceCheckClick: function(e) {
-        this.api.set({ AllowSpaceInTags: this.allowSpaceCheck.checked });
-        this.api.save();
-               },
+    httpsButtonClick: function () {
+        this.httpsMessage.classList.remove('active');
+    },
 
-    // refreshTokenClick: function (e) {
-    //     e.preventDefault();
+    clearClick: function () {
+        this.userLogin_.value = '';
+        this.userPassword_.value = '';
+        this.clientSecret_.value = '';
+        this.clientId_.value = '';
+        this.wallabagurlinput_.value = '';
+        this.protocolLabel_.textContent = 'http://';
+        this.protocolCheck_.checked = false;
+    },
 
-    //     this._hide( document.getElementById("errorinfo") );
+    loadFromFileClick: function () {
+        this.openFileDialog.value = null;
+        this.openFileDialog.click();
+    },
 
-    //     if (this.clientId_.value != '' && this.clientSecret_.value != '' && this.refrTokenInput_.value != '') {
+    loadFromFile: function () {
+        if (this.openFileDialog.value !== '') {
+            var fileToLoad = this.openFileDialog.files[0];
+            let fileReader = new FileReader();
+            fileReader.onload = function (fileLoadedEvent) {
+                let textFromFileLoaded = fileLoadedEvent.target.result;
+                let obj = JSON.parse(textFromFileLoaded);
+                if (this.debugEl.checked) {
+                    console.log(textFromFileLoaded);
+                    console.log(obj);
+                }
+                this.data = Object.assign({}, obj);
+                this.setFields();
+                this.port.postMessage({request: 'setup-save', data: this.data});
+            }.bind(this);
+            fileReader.readAsText(fileToLoad, 'UTF-8');
+        }
+    },
 
-    //         this.api.RefreshToken()
-    //             .then(data => {
-    //                 if (data != '') {
-    //                         console.log(data);
-    //                         this.appTokenInput_.value = data.access_token;
-    //                         this.refrTokenInput_.value = data.refresh_token;
-    //                         this.tokenLabel_.innerHTML = "Granted";
-    //                         let nowDate = (new Date()); 
-    //                         let expireDate = nowDate.setSeconds(nowDate.getSeconds() + data.expires_in) ;
-    //                         this.tokenExpiresInput.value = new Date(  expireDate );
-    //                         this.api.save(); 
-    //                 }
-    //             }).catch(error => {
-    //                 console.log(error);
-    //                 this.tokenLabel_.innerHTML = "error";
-    //             });
+    saveToFileClick: function () {
+        let textToSave = JSON.stringify(this.data);
+        let textToSaveAsBlob = new Blob([textToSave], { type: 'text/plain' });
+        let textToSaveAsURL = window.URL.createObjectURL(textToSaveAsBlob);
+        let fileNameToSaveAs = 'wallabag.json';
+        let downloadLink = document.createElement('a');
+        downloadLink.download = fileNameToSaveAs;
+        downloadLink.textContent = 'Download File';
+        downloadLink.href = textToSaveAsURL;
+        downloadLink.onclick = (event) => { document.body.removeChild(event.target); };
+        downloadLink.style.display = 'none';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+    },
 
-    //     }
-    // },
+    allowSpaceCheckClick: function (e) {
+        Object.assign(this.data, { AllowSpaceInTags: this.allowSpaceCheck.checked });
+        this.port.postMessage({request: 'setup-save', data: this.data});
+    },
 
-    // checkTokenClick: function (e) {
-    //     e.preventDefault();
-    //     if (this.appTokenInput_.value != '') {
+    allowExistCheckClick: function (e) {
+        if (this.protocolCheck_.checked) {
+            Object.assign(this.data, { AllowExistCheck: this.allowExistCheck.checked });
+            this.port.postMessage({request: 'setup-save', data: this.data});
+        } else {
+            this.allowExistCheck.checked = false;
+            this.httpsMessage.classList.add('active');
+        }
+    },
 
-    //         this.api.CheckAppToken()
-    //                 .then(data => {
-    //                 if (data != '') {
-    //                     this.tokenLabel_.innerHTML = "Checked, total articles: "+data.total;
-    //                 }
-    //                 })
-    //                 .catch(error => {
-    //                 console.log(error);
-    //             }); 
-    //     }
-    // },
-
+    debugClick: function () {
+        Object.assign(this.data, { Debug: this.debugEl.checked });
+        this.port.postMessage({request: 'setup-save', data: this.data});
+    },
 
     wallabagApiTokenGot: function () {
-
-        this.api.save();
-
         this._green(this.clientId_);
         this._green(this.clientSecret_);
         this._green(this.userLogin_);
         this._green(this.userPassword_);
-        //   this.appTokenInput_.value = this.api.data.ApiToken;
-        //   this.refrTokenInput_.value = this.api.data.RefreshToken;
-        let expireDate = this.api.data.ExpireDateMs;
-        //   this.tokenExpiresInput.value = new Date(  expireDate ); 
-        this.tokenLabel_.innerHTML = "Granted";
-
+        this.tokenLabel_.textContent = 'Granted';
     },
 
     wallabagApiTokenNotGot: function () {
-
         this._red(this.clientId_);
         this._red(this.clientSecret_);
         this._red(this.userLogin_);
         this._red(this.userPassword_);
-        // this.appTokenInput_.value = '';
-        // this.refrTokenInput_.value = '';
-        // chrome.storage.local.set({ 'wallabagapptoken': '' });
-        // chrome.storage.local.set({ 'wallabagrefreshtoken': '' });
-        this.tokenLabel_.innerHTML = "Not granted";
-
+        this.tokenLabel_.textContent = 'Not granted';
     },
 
     getAppTokenClick: function (e) {
-
         e.preventDefault();
 
-        if (this.clientId_.value == '') {
+        if (this.clientId_.value === '') {
             this._red(this.clientId_);
         } else {
-            //            chrome.storage.local.set({ 'wallabagclientid': this.clientId_.value });
             this._green(this.clientId_);
         }
 
-        if (this.clientSecret_.value == '') {
+        if (this.clientSecret_.value === '') {
             this._red(this.clientSecret_);
         } else {
-            //            chrome.storage.local.set({ 'wallabagclientsecret': this.clientSecret_.value });
             this._green(this.clientSecret_);
         }
 
-        if (this.userLogin_.value == '') {
+        if (this.userLogin_.value === '') {
             this._red(this.userLogin_);
         } else {
-            //            chrome.storage.local.set({ 'wallabaguserlogin': this.userLogin_.value });
             this._green(this.userLogin_);
         }
 
-        if (this.userPassword_.value == '') {
+        if (this.userPassword_.value === '') {
             this._red(this.userPassword_);
         } else {
             this._green(this.userPassword_);
         }
 
-        if (this.clientId_.value != '' && this.clientSecret_.value != '' && this.userLogin_.value && this.userPassword_.value) {
-            //wallabagGetAppToken: wallabagGetAppToken: function(aUrl, clientId, clientSecret, userId, userPassword){
-            this.api.set({
-                Url: this.protocolLabel_.innerText + this.wallabagurlinput_.value,
+        if (this.clientId_.value !== '' && this.clientSecret_.value !== '' && this.userLogin_.value && this.userPassword_.value) {
+            Object.assign(this.data, {
+                Url: this.protocolLabel_.textContent + this.wallabagurlinput_.value,
                 ClientId: this.clientId_.value,
                 ClientSecret: this.clientSecret_.value,
                 UserLogin: this.userLogin_.value,
                 UserPassword: this.userPassword_.value
-            }
-            );
-            this.api.GetAppToken(this.userPassword_.value)
-                .then(data => {
-//                    console.log('wallabag api token get: ' + JSON.stringify(data));
-                    this.wallabagApiTokenGot();
-                })
-                .catch(error => {
-//                    console.log('wallabag api token get error: ' + error);
-                    this.wallabagApiTokenNotGot();
-                });
+            });
+            this.port.postMessage({request: 'setup-gettoken', data: this.data});
         }
     },
 
     handleProtocolClick: function () {
-
         if (this.protocolCheck_.checked) {
-            this.protocolLabel_.innerText = 'https://'
+            this.protocolLabel_.textContent = 'https://';
         } else {
-            this.protocolLabel_.innerText = 'http://'
+            this.protocolLabel_.textContent = 'http://';
+            this.allowExistCheck.checked = false;
         }
-
-    },
-
-    _status: function (response) {
-        if (response.status >= 200 && response.status < 300) {
-            return Promise.resolve(response)
-        } else {
-            return Promise.reject(new Error(response.statusText))
-        }
-    },
-
-    _json: function (response) {
-        return response.json()
     },
 
     _hide: function (element) {
@@ -227,12 +214,10 @@ OptionsController.prototype = {
         element.classList.remove('hide');
     },
 
-
     _grey: function (element) {
         element.classList.remove('is-danger');
         element.classList.remove('is-success');
     },
-
 
     _green: function (element) {
         element.classList.remove('is-danger');
@@ -245,13 +230,10 @@ OptionsController.prototype = {
     },
 
     wallabagUrlChecked: function () {
-        if (this.api.data.ApiVersion != '') {
-            this.versionLabel_.innerHTML = this.api.data.ApiVersion;
-            //            chrome.storage.local.set({ 'wallabagapiversion': this.api.data.ApiVersion });
-            this.api.save();
-            if (this.api.data.ApiVersion.split('.')[0] == '2') {
-                //                chrome.storage.local.set({ 'wallabagchecked': 'OK' });
-                this.checkedLabel_.innerHTML = 'OK';
+        if (this.data.ApiVersion !== '') {
+            this.versionLabel_.textContent = this.data.ApiVersion;
+            if (this.data.ApiVersion.split('.')[0] === '2') {
+                this.checkedLabel_.textContent = 'OK';
                 this._green(this.wallabagurlinput_);
                 this._show(this.tokenSection_);
             }
@@ -259,105 +241,112 @@ OptionsController.prototype = {
     },
 
     wallabagUrlNotChecked: function () {
-        this.api.clear();
-        this.api.save();
         this._red(this.wallabagurlinput_);
         this._hide(this.tokenSection_);
-        this.checkedLabel_.innerHTML = "Not checked";
-        this.versionLabel_.innerHTML = "Not checked";
+        this.checkedLabel_.textContent = 'Not checked';
+        this.versionLabel_.textContent = 'Not checked';
     },
 
-
     checkUrlClick: function (e) {
-
         e.preventDefault();
 
-        if (this.wallabagurlinput_.value != '') {
+        if (this.wallabagurlinput_.value !== '') {
+            Object.assign(this.data, { Url: this.protocolLabel_.textContent + this.wallabagurlinput_.value });
+            this.port.postMessage({request: 'setup-checkurl', data: this.data});
+        }
+    },
 
-            this.api.set({ Url: this.protocolLabel_.innerText + this.wallabagurlinput_.value });
+    setFields: function () {
+        const re = /^(http|https):\/\/(.*)/;
+        if (re.test(this.data.Url)) {
+            const res = re.exec(this.data.Url);
+            this.protocolCheck_.checked = (res[1] === 'https');
+            this.protocolLabel_.textContent = res[1] + '://';
+            this.wallabagurlinput_.value = res[2];
+        };
 
-            this.api.CheckUrl()
-                .then(data => {
-//                    console.log('wallabag url checked: ' + JSON.stringify(data));
-                    this.wallabagUrlChecked();
-                })
-                .catch(error => {
-//                    console.log('wallabag url check error: ' + error);
-                    this.wallabagUrlNotChecked();
-                });
-
+        if (this.wallabagurlinput_.value !== '') {
+            this._show(this.tokenSection_);
         }
 
+        if (this.data.ApiVersion) {
+            this.versionLabel_.textContent = this.data.ApiVersion;
+            if (this.data.ApiVersion.split('.')[0] === '2') {
+                this.checkedLabel_.textContent = 'OK';
+                this._green(this.wallabagurlinput_);
+                this._show(this.tokenSection_);
+            }
+        }
+
+        this.clientId_.value = this.data.ClientId || '';
+        this.clientSecret_.value = this.data.ClientSecret || '';
+        this.userLogin_.value = this.data.UserLogin || '';
+        this.userPassword_.value = this.data.UserPassword || '';
+
+        if (this.data.ApiToken) {
+            this.tokenLabel_.textContent = 'Granted';
+        }
+
+        if (this.data.ExpireDateMs && this.expired) {
+            this.tokenLabel_.textContent = 'Expired';
+        }
+
+        this.allowSpaceCheck.checked = this.data.AllowSpaceInTags;
+        this.allowExistCheck.checked = this.data.AllowExistCheck;
+        this.debugEl.checked = this.data.Debug;
+    },
+
+    expired: function () {
+        return (this.data.ExpireDateMs != null) && (Date.now() > this.data.ExpireDateMs);
+    },
+
+    messageListener: function (msg) {
+        switch (msg.response) {
+            case 'state':
+                this.data = Object.assign({}, msg.data);
+                this.setFields();
+                break;
+            case 'setup-checkurl':
+                Object.assign(this.data, msg.data);
+                if (msg.result) {
+                    this.wallabagUrlChecked();
+                } else {
+                    this.wallabagUrlNotChecked();
+                }
+                break;
+            case 'setup-gettoken':
+                Object.assign(this.data, msg.data);
+                if (msg.result) {
+                    this.wallabagApiTokenGot();
+                } else {
+                    this.wallabagApiTokenNotGot();
+                }
+                break;
+            case 'setup-save':
+                Object.assign(this.data, msg.data);
+                if (this.data.Debug) {
+                    console.log(`setup saved: ${msg.data}`);
+                }
+                break;
+            default:
+                if (this.data.Debug) {
+                    console.log(`unknown message: ${msg}`);
+                }
+        };
     },
 
     init: function () {
-
-        this.api = new WallabagApi();
-
-        this.api.load().then(data => {
-
-            let wburl = data.Url;
-            let re = /^(http|https):\/\/(.*)/;
-            if (re.test(wburl)) {
-                res = re.exec(wburl);
-                this.protocolCheck_.checked = (res[1] == "https");
-                this.protocolLabel_.innerText = res[1] + "://";
-                this.wallabagurlinput_.value = res[2];
-            };
-            let apiv = data.ApiVersion;
-            if ((apiv != '') && (apiv != null)) {
-                this.versionLabel_.innerHTML = apiv;
-                if (apiv.split('.')[0] == '2') {
-                    this.checkedLabel_.innerHTML = 'OK';
-                    this._green(this.wallabagurlinput_);
-                    this._show(this.tokenSection_);
-                }
-            }
-            let clid = data.ClientId;
-            if ((clid != '') && (clid != null)) {
-                this.clientId_.value = clid;
-            }
-            let clsc = data.ClientSecret;
-            if ((clsc != '') && (clsc != null)) {
-                this.clientSecret_.value = clsc;
-            }
-            let usrlg = data.UserLogin;
-            if ((usrlg != '') && (usrlg != null)) {
-                this.userLogin_.value = usrlg;
-            }
-            let usrp = data.UserPassword;
-            if ((usrp != '') && (usrp != null)) {
-                this.userPassword_.value = usrp;
-            }
-            let atoken = data.ApiToken;
-            if ((atoken != '') && (atoken != null)) {
-                //                this.appTokenInput_.value = atoken;
-                this.tokenLabel_.innerHTML = "Granted";
-            }
-            let rtoken = data.RefreshToken;
-            if ((rtoken != '') && (rtoken != null)) {
-                //             this.refrTokenInput_.value = rtoken;
-            }
-
-            let allowSp = this.api.data.AllowSpaceInTags;
-            if ((allowSp!= null)) {
-                this.allowSpaceCheck.checked = allowSp;
-            }
-
-        //    let expireDate = this.api.data.ExpireDateMs;
-        //     if ((expireDate != null)) {
-        //         this.tokenExpiresInput.value = new Date(expireDate);
-        //         if (this.api.expired) {
-        //             this.tokenLabel_.innerHTML = "Expired"
-        //         }
-        //    }
-
-        }).catch(data => { });
-
+        this.port = browser.runtime.connect({name: 'setup'});
+        this.port.onMessage.addListener(this.messageListener.bind(this));
+        this.port.postMessage({request: 'setup'});
     }
+
 };
 
 document.addEventListener('DOMContentLoaded', function () {
-    window.PC = new OptionsController();
+    if (typeof (browser) === 'undefined' && typeof (chrome) === 'object') {
+        browser = chrome;
+    }
+    const PC = new OptionsController();
     PC.init();
 });

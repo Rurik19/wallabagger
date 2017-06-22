@@ -1,76 +1,81 @@
-let State = {
+/* globals render, renderError, EventHandler */
+var State = {
     id: -1,
     preview_picture: 'img/wallabag-icon-128.png',
     title: 'Title',
     domain_name: 'Domain name',
     is_starred: 0,
     is_archived: 0,
-    tags: [],
+    tagList: '',
+    foundTagList: '',
     AllowSpaceInTags: false,
     tabUrl: '',
     Url: '',
     message: '',
-    Debug: false,
-    editMode: false
+    Debug: false
 };
 
-let port = null;
-
-State = new Proxy(State, {
-    set (target, prop, value) {
-        if (target.Debug) console.log(`state set ${prop}: ${value}`);
-        target[prop] = value;
-        render(target);
-        return true;
+var Controller = {
+    port: null,
+    Connect: function () {
+        this.port = browser.runtime.connect({ name: 'popup' });
+        this.port.onMessage.addListener(Listener);
+    },
+    Save: function () { this.port.postMessage({ request: 'save' }); },
+    patchArticle: function () { this.port.postMessage({request: 'patch', State: this.State}); },
+    saveTitle: function (title) {
+        this.State.title = title;
+        render(this.State);
+        this.patchArticle();
+    },
+    deleteArticle: function () {
+        this.port.postMessage({ request: 'delete', articleId: this.State.id, tabUrl: this.State.tabUrl });
+        window.close();
+    },
+    toggleStarred: function () {
+        this.State.is_starred = (this.State.is_starred + 1) % 2;
+        render(this.State);
+        this.patchArticle();
+    },
+    toggleArchived: function () {
+        this.State.is_archived = (this.State.is_archived + 1) % 2;
+        render(this.State);
+        this.patchArticle();
+    },
+    deleteTag: function () {},
+    SetTags: function (value) {
+        this.State.tagList = `${this.State.tagList},${value}`;
+        this.patchArticle();
+    },
+    FindTags: function (value) {
+        this.port.postMessage({ request: 'findtags', State: this.State, search: value });
     }
-});
-
-const deleteTag = () => {};
-
-const deleteArticle = () => {
-    port.postMessage({ request: 'deleteArticle', articleId: State.id, tabUrl: State.tabUrl });
-    window.close();
 };
 
-const openDeleteDialog = () => { document.getElementById('delete_confirmation').classList.add('active'); };
-const closeDeleteDialog = () => { document.getElementById('delete_confirmation').classList.remove('active'); };
-
-const toggleEdit = () => { State.editMode = !State.editMode; };
-
-const saveEdit = () => {
-    State.title = document.getElementById('title-input').value;
-    port.postMessage({request: 'saveTitle', articleId: State.id, title: State.title, tabUrl: State.tabUrl});
-    toggleEdit();
+const Listener = (msg) => {
+    try {
+        switch (msg.response) {
+            case 'error':
+                renderError(msg.error.message);
+                break;
+            case 'state':
+                Object.assign(State, msg.data);
+                render(State);
+                break;
+            default:
+                State.Debug && console.log(`unknown request ${JSON.stringify(msg)}`);
+        }
+    } catch (error) {
+        renderError(error.message);
+    }
 };
-
-function toggleStarred (e) {
-    State.is_starred = (State.is_starred + 1) % 2;
-    port.postMessage({request: 'SaveStarred', articleId: State.id, value: State.is_starred, tabUrl: State.tabUrl});
-}
-function toggleArchived (e) {
-    State.is_archived = (State.is_archived + 1) % 2;
-    port.postMessage({request: 'SaveArchived', articleId: State.id, value: State.is_archived, tabUrl: State.tabUrl});
-}
-
-function messageListener (msg) {
-    if (State.Debug) console.log(JSON.stringify(msg));
-    switch (msg.response) {
-        case 'state':
-            Object.assign(State, msg.data);
-            break;
-        case 'error':
-            renderError(msg.error.message);
-            break;
-        default:
-            console.log(`unknown message: ${JSON.stringify(msg)}`);
-    };
-}
 
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof (browser) === 'undefined' && typeof (chrome) === 'object') {
         browser = chrome;
     }
-    port = browser.runtime.connect({ name: 'popup' });
-    port.onMessage.addListener(messageListener);
-    port.postMessage({ request: 'save' });
+    Controller.Connect();
+ //   render(State);
+    EventHandler.init();
+    Controller.Save();
 });

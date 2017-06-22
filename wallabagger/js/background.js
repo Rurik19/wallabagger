@@ -155,7 +155,7 @@ function addExistCheckListeners (enable) {
 function onContextMenusClicked (info) {
     switch (info.menuItemId) {
         case 'wallabagger-add-link':
-            if (typeof (info.linkUrl) === 'string') {
+            if (info.linkUrl.length > 0) {
                 savePageToWallabag(info.linkUrl, true);
             } else {
                 savePageToWallabag(info.pageUrl, false);
@@ -183,6 +183,7 @@ function onCommandsCommand (command) {
 
 function postIfConnected (obj) {
     portConnected && Port.postMessage(obj);
+    api.data.Debug && console.log(`postMessage: ${JSON.stringify(obj)}`);
 }
 function onPortMessage (msg) {
     if (api.data.Debug) console.log(JSON.stringify(msg));
@@ -205,6 +206,16 @@ function onPortMessage (msg) {
                     }
                 });
                 break;
+            case 'patch':
+                if (msg.State.id > 0) {
+                    api.PatchArticle(msg.State.id, { title: msg.State.title, starred: msg.State.is_starred, archive: msg.State.is_archived, tags: msg.State.tagList });
+                } else {
+                    dirtyCacheSet(msg.tabUrl, { title: msg.State.title, is_starred: msg.State.is_starred, is_archived: msg.State.is_archived, tagList: msg.State.tagList });
+                }
+                break;
+            case 'findtags':
+                findTags(msg.search, msg.State);
+                break;
             case 'tags':
                 if (!cache.check('allTags')) {
                     api.GetTags()
@@ -216,17 +227,7 @@ function onPortMessage (msg) {
                     postIfConnected({ response: 'tags', tags: cache.get('allTags') });
                 }
                 break;
-            case 'saveTitle':
-                if (msg.articleId !== -1) {
-                    api.SaveTitle(msg.articleId, msg.title).then(data => {
-                        postIfConnected({ response: 'title', title: data.title });
-                        cache.set(msg.tabUrl, data);
-                    });
-                } else {
-                    dirtyCacheSet(msg.tabUrl, {title: msg.title});
-                }
-                break;
-            case 'deleteArticle':
+            case 'delete':
                 if (msg.articleId !== -1) {
                     api.DeleteArticle(msg.articleId).then(data => {
                         cache.clear(msg.tabUrl);
@@ -272,37 +273,6 @@ function onPortMessage (msg) {
                             postIfConnected({ response: 'setup-checkurl', data: api.data, result: false });
                         });
                 break;
-            case 'deleteArticleTag':
-                if (msg.articleId !== -1) {
-                    api.DeleteArticleTag(msg.articleId, msg.tagId).then(data => {
-                        postIfConnected({ response: 'articleTags', tags: data.tags });
-                        cache.set(msg.tabUrl, data);
-                    });
-                } else {
-                    dirtyCacheSet(msg.tabUrl, {tagList: msg.tags});
-                }
-                break;
-            case 'saveTags':
-                if (msg.articleId !== -1) {
-                    api.SaveTags(msg.articleId, msg.tags).then(data => {
-                        postIfConnected({ response: 'articleTags', tags: data.tags });
-                        cache.set(msg.tabUrl, data);
-                    });
-                } else {
-                    dirtyCacheSet(msg.tabUrl, {tagList: msg.tags});
-                }
-                break;
-            case 'SaveStarred':
-            case 'SaveArchived':
-                if (msg.articleId !== -1) {
-                    api[msg.request](msg.articleId, msg.value).then(data => {
-                        postIfConnected({ response: 'state', data: { is_starred: data.is_starred, is_archived: data.is_archived } });
-                        cache.set(msg.tabUrl, data);
-                    });
-                } else {
-                    dirtyCacheSet(msg.tabUrl, (msg.request === 'SaveStarred') ? {is_starred: msg.value} : {is_archived: msg.value});
-                }
-                break;
             default: {
                 console.log(`unknown request ${JSON.stringify(msg)}`);
             }
@@ -311,6 +281,18 @@ function onPortMessage (msg) {
         setIcon(icons.bad);
         setTimeout(function () { setIcon(icons.default); }, 5000);
         postIfConnected({ response: 'error', error: error });
+    }
+}
+
+function findTags (search, State) {
+    if (!cache.check('allTags')) {
+        const dirtyTagList = dirtyCache.check(State.tabUrl) ? dirtyCache.get(State.tabUrl).tagList : '';
+        const allTags = cache.get('allTags');
+        const articleTags = dirtyTagList === '' ? State.tagList.split(',') : `${State.tagList},${dirtyTagList}`.split(',');
+        const foundTags = allTags.filter(tag => (articleTags.map(t => t.toUpperCase()).indexOf(tag.label.toUpperCase()) === -1) &&
+            ((tag.label.toUpperCase().indexOf(search.toUpperCase()) !== -1) || (search.toUpperCase() === tag.label.toUpperCase()))
+        ).join(',');
+        postIfConnected({ response: 'state', State: { foundTagList: foundTags } });
     }
 }
 
@@ -356,6 +338,8 @@ function applyDirtyCacheLight (key, data) {
         } else {
             data.deleted = true;
         }
+    } else {
+        data.tagList = data.tags.map(tag => tag.label).join(',');
     }
     return data;
 }
@@ -383,6 +367,7 @@ function cutArticle (data) {
         title: data.title,
         url: data.url,
         tags: data.tags,
+        tagList: data.tagList,
         domain_name: data.domain_name,
         preview_picture: data.preview_picture
     });

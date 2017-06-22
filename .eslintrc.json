@@ -13,7 +13,8 @@
     "globals": {
         "WallabagApi": true,
         "FetchApi": true,
-        "hyperHTML": true
+        "UIEventHandler": true,
+        "$$": true
     },
     "rules": {
         "indent": [

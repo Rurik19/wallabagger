@@ -91,7 +91,7 @@ WallabagApi.prototype = {
 
     setsave: function (params) {
         this.set(params);
-        this.save;
+        this.save();
     },
 
     CheckUrl: function () {
